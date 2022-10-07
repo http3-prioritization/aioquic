@@ -62,6 +62,9 @@ class FrameType(IntEnum):
     DUPLICATE_PUSH = 0xE
     WEBTRANSPORT_STREAM = 0x41
 
+    # https://datatracker.ietf.org/doc/html/draft-ietf-httpbis-priority-12#section-7.2
+    PRIORITY_UPDATE = 0xF0700
+
 
 class HeadersState(Enum):
     INITIAL = 0
@@ -568,7 +571,7 @@ class H3Connection:
             settings[Setting.ENABLE_WEBTRANSPORT] = 1
         return settings
 
-    def _handle_control_frame(self, frame_type: int, frame_data: bytes) -> None:
+    def _handle_control_frame(self, control_stream_id: int, frame_type: int, frame_data: bytes) -> None:
         """
         Handle a frame received on the peer's control stream.
         """
@@ -598,6 +601,30 @@ class H3Connection:
             FrameType.DUPLICATE_PUSH,
         ):
             raise FrameUnexpected("Invalid frame type on control stream")
+        elif frame_type == FrameType.PRIORITY_UPDATE:
+            # HTTP/3 PRIORITY_UPDATE Frame {
+            #      Type (i) = 0xF0700..0xF0701,
+            #      Length (i),
+            #      Prioritized Element ID (i),
+            #      Priority Field Value (..), # encoded as ASCII text (e.g.,   u=1    or   u=5, i    )
+            #    }
+            # type and length have already been parse by preceding, so only elementID and field value to go
+            buf = Buffer(data=frame_data)
+            elementID = buf.pull_uint_var()
+            fieldValue = buf.pull_bytes( buf.capacity - buf.tell() )
+
+            logger.debug(f"PRIORITY_UPDATE frame received for stream {elementID} with value {frame_data.hex()} => { fieldValue.decode('ascii') }")
+
+            if self._quic_logger is not None:
+                self._quic_logger.log_event(
+                    category="http",
+                    event="frame_parsed",
+                    data=self._quic_logger.encode_priority_update_frame(
+                        length=len(frame_data), elementID=elementID, fieldValue=fieldValue.decode("ascii"), stream_id=control_stream_id
+                    ),
+                )
+        else:
+            logger.debug(f"Unknown frame received on control stream, ignoring: {hex(frame_type)} @ {frame_data.hex()}")
 
     def _handle_request_or_push_frame(
         self,
@@ -714,6 +741,8 @@ class H3Connection:
                 if stream.push_id is None
                 else "Invalid frame type on push stream"
             )
+        else:
+            logger.debug("Unknown frame type received {frame_type}")
 
         return http_events
 
@@ -979,7 +1008,7 @@ class H3Connection:
                     break
                 consumed = buf.tell()
 
-                self._handle_control_frame(frame_type, frame_data)
+                self._handle_control_frame(stream.stream_id, frame_type, frame_data)
             elif stream.stream_type == StreamType.PUSH:
                 # fetch push id
                 if stream.push_id is None:

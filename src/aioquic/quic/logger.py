@@ -224,6 +224,19 @@ class QuicLoggerTrace:
             "stream_id": stream_id,
         }
 
+    def encode_priority_update_frame(
+        self, length: int, elementID: int, fieldValue: str, stream_id: int
+    ) -> Dict:
+        return {
+            "frame": {
+                "frame_type": "priority_update",
+                "element_id": elementID,
+                "value": fieldValue
+            },
+            "length": length,
+            "stream_id": stream_id,
+        }
+
     def encode_http3_headers_frame(
         self, length: int, headers: Headers, stream_id: int
     ) -> Dict:
