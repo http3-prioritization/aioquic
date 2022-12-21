@@ -1,28 +1,62 @@
-aioquic
-=======
+Custom aioquic for HTTP/3 prioritization testing
+================================================
 
-|rtd| |pypi-v| |pypi-pyversions| |pypi-l| |tests| |codecov| |black|
+This version of aioquic adds additional logging for the RFC 9218 prioritization signals and frames.
 
-.. |rtd| image:: https://readthedocs.org/projects/aioquic/badge/?version=latest
-    :target: https://aioquic.readthedocs.io/
+Installation instructions that worked for me:
 
-.. |pypi-v| image:: https://img.shields.io/pypi/v/aioquic.svg
-    :target: https://pypi.python.org/pypi/aioquic
+.. code-block:: console
 
-.. |pypi-pyversions| image:: https://img.shields.io/pypi/pyversions/aioquic.svg
-    :target: https://pypi.python.org/pypi/aioquic
+    git clone https://github.com/http3-prioritization/aioquic trunk
+    git fetch
+    git checkout priority-logging
 
-.. |pypi-l| image:: https://img.shields.io/pypi/l/aioquic.svg
-    :target: https://pypi.python.org/pypi/aioquic
+    sudo apt install -y libssl-dev python3-dev python3-pip
 
-.. |tests| image:: https://github.com/aiortc/aioquic/workflows/tests/badge.svg
-    :target: https://github.com/aiortc/aioquic/actions
+    cd trunk
+    pip3 install -e .
+    pip3 install asgiref dnslib "flask<2.2" httpbin starlette "werkzeug<2.1" wsproto
 
-.. |codecov| image:: https://img.shields.io/codecov/c/github/aiortc/aioquic.svg
-    :target: https://codecov.io/gh/aiortc/aioquic
 
-.. |black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
-    :target: https://github.com/python/black
+You can then run the example server with:
+
+.. code-block:: console
+    
+    python3 examples/http3_server.py --port 443 --certificate /etc/letsencrypt/live/your.domain.com/fullchain.pem --private-key /etc/letsencrypt/live/your.domain.com/privkey.pem --verbose --quic-log ../server-qlogs/
+
+
+Note: for proper browser interop, you should use port 443 and a real (letsencrypt) TLS certificate for the actual domain you're running the server on. Local testing is possible, [but annoying](https://github.com/aiortc/aioquic/tree/main/examples#chromium-and-chrome-usage).
+
+
+You can then verify the basic setup is working using curl:
+
+.. code-block:: console
+    
+    docker run -it --rm rmarx/curl-http3 curl -IL https://your.domain.com --http3 --connect-timeout 2 -H "priority: u=5, i"
+
+
+Note: for proper browser interop, you also need to run an HTTP/2 (or HTTP/1.1) server that sends the correct alt-svc indicator.
+
+My HTTP/2 setup for apache::
+
+    <VirtualHost *:443>
+        ServerAdmin rmarx@akamai.com
+        ServerName your.domain.com
+        DocumentRoot /var/www
+        ErrorLog ${APACHE_LOG_DIR}/error.log
+        CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+        Header set alt-svc "h3=\":443\"; ma=86400"
+
+        Include /etc/letsencrypt/options-ssl-apache.conf
+        SSLCertificateFile /etc/letsencrypt/live/your.domain.com/fullchain.pem
+        SSLCertificateKeyFile /etc/letsencrypt/live/your.domain.com/privkey.pem
+    </VirtualHost>
+
+
+Note: Chromium and Firefox will switch to HTTP/3 ASAP after receiving the alt-svc, but Safari is usually slower (can wait until the HTTP/2 connection times out until it tries HTTP/3). 
+The fastes way for testing I've found is load a page over HTTP/2 once in each browser, close the browsers to force close the HTTP/2 connection (alt-svc info will stay cached), 
+and then open the browsers again after a few seconds. This should lead to consistent HTTP/3 usage. 
 
 What is ``aioquic``?
 --------------------
