@@ -742,7 +742,7 @@ class H3Connection:
                 else "Invalid frame type on push stream"
             )
         else:
-            logger.debug("Unknown frame type received {frame_type}")
+            logger.debug(f"Unknown frame type received {frame_type}")
 
         return http_events
 
