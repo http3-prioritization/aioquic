@@ -58,6 +58,9 @@ class HttpRequestHandler:
         self.stream_id = stream_id
         self.transmit = transmit
 
+        # pass configuration through to the actual request handler in app() so we can acces things like qlog from there
+        self.scope["quicConfiguration"] = self.protocol._quic.configuration
+
         if stream_ended:
             self.queue.put_nowait({"type": "http.request"})
 

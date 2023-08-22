@@ -7,6 +7,7 @@ import os
 from urllib.parse import urlencode
 
 import httpbin
+import json
 from asgiref.wsgi import WsgiToAsgi
 from starlette.applications import Starlette
 from starlette.responses import PlainTextResponse, Response
@@ -73,6 +74,21 @@ async def logs(request):
         },
     )
 
+async def qlogCurrent(request):
+    """
+    dump contents of current connection's qlog
+    """
+
+    qlog_events = request.scope["quicConfiguration"].quic_logger.to_dict()
+
+    return templates.TemplateResponse(
+        "qlogCurrent.html",
+        {
+            "qlog": json.dumps(qlog_events),
+            "request": request
+        },
+        media_type="application/json"
+    )
 
 async def padding(request):
     """
@@ -136,6 +152,9 @@ starlette = Starlette(
         Route("/echo", echo, methods=["POST"]),
         Mount("/httpbin", WsgiToAsgi(httpbin.app)),
         Route("/logs", logs),
+        Route("/qlog", qlogCurrent),
+        Route("/qlog.json", qlogCurrent),
+        Route("/htdocs/test/qlog", qlogCurrent),
         WebSocketRoute("/ws", ws),
         Mount(STATIC_URL, StaticFiles(directory=STATIC_ROOT, html=True)),
     ]

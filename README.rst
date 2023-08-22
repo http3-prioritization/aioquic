@@ -21,7 +21,8 @@ Installation instructions that worked for me:
 You can then run the example server with:
 
 .. code-block:: console
-    
+
+    cd trunk
     python3 examples/http3_server.py --port 443 --certificate /etc/letsencrypt/live/your.domain.com/fullchain.pem --private-key /etc/letsencrypt/live/your.domain.com/privkey.pem --verbose --quic-log ../server-qlogs/
 
 
@@ -57,6 +58,15 @@ My HTTP/2 setup for apache::
 Note: Chromium and Firefox will switch to HTTP/3 ASAP after receiving the alt-svc, but Safari is usually slower (can wait until the HTTP/2 connection times out until it tries HTTP/3). 
 The fastes way for testing I've found is load a page over HTTP/2 once in each browser, close the browsers to force close the HTTP/2 connection (alt-svc info will stay cached), 
 and then open the browsers again after a few seconds. This should lead to consistent HTTP/3 usage. 
+
+"Live" qlog support
+-------------------
+
+This version of aioquic support live retrieval of the "current" connection's qlog output.
+
+Hit the /qlog or /qlog.json endpoints (e.g., https://www.example.org/qlog.json) and you'll get a qlog JSON string back for the current connection, including the request for the qlog file.
+
+This can for example be used for live debugging inside a browser or for easy qlog extraction without access to the server (or having to wait until the connection is closed for the actual .qlog file to be written to disk).
 
 What is ``aioquic``?
 --------------------
