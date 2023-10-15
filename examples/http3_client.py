@@ -25,7 +25,7 @@ from aioquic.h3.events import (
 )
 from aioquic.quic.configuration import QuicConfiguration
 from aioquic.quic.events import QuicEvent
-from aioquic.quic.logger import QuicFileLogger
+from aioquic.quic.logger import QuicSingleFileLogger, QuicFileLogger
 from aioquic.tls import CipherSuite, SessionTicket
 
 try:
@@ -532,7 +532,9 @@ if __name__ == "__main__":
     if args.max_stream_data:
         configuration.max_stream_data = args.max_stream_data
     if args.quic_log:
-        configuration.quic_logger = QuicFileLogger(args.quic_log)
+        # configuration.quic_logger = QuicFileLogger(args.quic_log)
+        # --quic-log should be a full file path instead of a directory (so e.g., /srv/aioquic/qlog/FILENAME.qlog)
+        configuration.quic_logger = QuicSingleFileLogger(args.quic_log)
     if args.secrets_log:
         configuration.secrets_log_file = open(args.secrets_log, "a")
     if args.session_ticket:
