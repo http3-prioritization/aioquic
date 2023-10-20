@@ -248,8 +248,20 @@ async def perform_http_request(
     url: str,
     data: Optional[str],
     include: bool,
+    delay_s: float,
     output_dir: Optional[str],
+    headers: Optional[Dict] = None
 ) -> None:
+
+    # logger.info("TEST", url)
+    # print( delay_s )
+    # print( headers )
+    # exit()
+
+    if delay_s > 0:
+        await asyncio.sleep(delay_s)
+        logger.info("Successfully Delayed parallel request by %.1f seconds", delay_s)
+
     # perform request
     start = time.time()
     if data is not None:
@@ -264,7 +276,7 @@ async def perform_http_request(
         )
         method = "POST"
     else:
-        http_events = await client.get(url)
+        http_events = await client.get(url, headers=headers)
         method = "GET"
     elapsed = time.time() - start
 
@@ -348,6 +360,8 @@ def save_session_ticket(ticket: SessionTicket) -> None:
 async def main(
     configuration: QuicConfiguration,
     urls: List[str],
+    headers: List[Dict], # MUST be of same length as URLs, with 1 headers enty per URL (can be None)
+    delays: List[float], # MUST be of same length as URLs, with 1 enty per URL (can be 0)
     data: Optional[str],
     include: bool,
     output_dir: Optional[str],
@@ -414,12 +428,14 @@ async def main(
             coros = [
                 perform_http_request(
                     client=client,
-                    url=url,
+                    url=urls[i],
                     data=data,
                     include=include,
+                    delay_s=delays[i],
+                    headers=headers[i],
                     output_dir=output_dir,
                 )
-                for url in urls
+                for i in range(len(urls))
             ]
             await asyncio.gather(*coros)
 
@@ -434,6 +450,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="HTTP/3 client")
     parser.add_argument(
         "url", type=str, nargs="+", help="the URL to query (must be HTTPS)"
+    )
+    parser.add_argument(
+        "--experiment", type=str, help="Name of the (prioritization) experiment to run"
     )
     parser.add_argument(
         "--ca-certs", type=str, help="load CA certificates from the specified file"
@@ -531,10 +550,6 @@ if __name__ == "__main__":
         configuration.max_data = args.max_data
     if args.max_stream_data:
         configuration.max_stream_data = args.max_stream_data
-    if args.quic_log:
-        # configuration.quic_logger = QuicFileLogger(args.quic_log)
-        # --quic-log should be a full file path instead of a directory (so e.g., /srv/aioquic/qlog/FILENAME.qlog)
-        configuration.quic_logger = QuicSingleFileLogger(args.quic_log)
     if args.secrets_log:
         configuration.secrets_log_file = open(args.secrets_log, "a")
     if args.session_ticket:
@@ -544,12 +559,90 @@ if __name__ == "__main__":
         except FileNotFoundError:
             pass
 
+    # prioritization experiments: user just passed in name of experiment, we set parameters here
+
+    experiment = args.experiment
+    request_count = 10
+    delay_s = 0.2 # 200ms delay between subsequent requests (if part of the experiment)
+    urls = []
+    headers = []
+    delays = []
+
+    mainURL = args.url[0] # should only ever be one anyway
+
+    if not args.experiment:
+        experiment = "no-headers-instant"
+
+    logger.info("Running %s experiment on %i URLs %s", experiment, request_count, mainURL)
+
+    # all requests issued at the same time, no priority information given
+    if experiment == "no-headers-instant":
+        for i in range(request_count):
+            urls.append(mainURL)
+            headers.append(None)
+            delays.append(0)
+
+    # requests issued staggered by delay_s seconds, no priority information given
+    elif experiment == "no-headers-delayed":
+        for i in range(request_count):
+            urls.append(mainURL)
+            headers.append(None)
+            delays.append(delay_s * i)
+
+    # default urgency 3 and incremental = true for all
+    elif experiment == "u3-incremental-instant":
+        for i in range(request_count):
+            urls.append(mainURL)
+            headers.append({"priority": "u=0, i"})
+            delays.append(0)
+    elif experiment == "u3-incremental-delayed":
+        for i in range(request_count):
+            urls.append(mainURL)
+            headers.append({"priority": "u=3, i"})
+            delays.append(delay_s * i)
+        
+    # we give request 5 and 6 a much higher priority than the others
+    elif experiment == "late-highprio-instant":
+        for i in range(request_count):
+            urls.append(mainURL)
+            headers.append({"priority": "u=6"})
+            delays.append(0)
+
+        headers[4] = {"priority": "u=0"}
+        headers[5] = {"priority": "u=0"}
+    elif experiment == "late-highprio-delayed":
+        for i in range(request_count):
+            urls.append(mainURL)
+            headers.append({"priority": "u=6"})
+            delays.append(delay_s * i)
+
+        headers[4] = {"priority": "u=0"}
+        headers[5] = {"priority": "u=0"}
+
+    else:
+        logger.error("Incorrect experiment set %s, quitting...", experiment)
+        exit()
+
+    if args.quic_log:
+        # configuration.quic_logger = QuicFileLogger(args.quic_log)
+        # --quic-log should be a partial file path instead of a directory (so e.g., /srv/aioquic/qlog/PREFIX_)
+        # the remainder of the filename is generated here based on the experiment name
+        quic_log_path = args.quic_log + "_" + str(request_count) + "_" + experiment + ".qlog"
+
+        configuration.quic_logger = QuicSingleFileLogger(quic_log_path)
+
+    # headers = []
+    # for url in args.url:
+    #     headers.append( {"priority": "u=0, i"} )
+
     if uvloop is not None:
         uvloop.install()
     asyncio.run(
         main(
             configuration=configuration,
-            urls=args.url,
+            urls=urls,
+            headers=headers,
+            delays=delays,
             data=args.data,
             include=args.include,
             output_dir=args.output_dir,
