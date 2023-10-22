@@ -18,12 +18,32 @@ print("Compilation done!")
 
 basecommand = "python3 /srv/aioquic/examples/http3_client.py --insecure -v"
 
-# class Endpoint:
-#     def __init__(self, url, name):
-#         self.url = url
-#         self.name = name
+class Endpoint:
+    def __init__(self, name, urls):
+        self.urls = urls
+        self.name = name
 
 # runname = ""
+
+endpoints = [
+    Endpoint("Cloudflare", ["https://www.cloudflare.com/app-fb825b9f46d28bd11d98.js"]), # 1.3MB JS
+    Endpoint("Akamai", ["https://www.internetonmars.org/h3prios/server-tests/test.js"]), # same 1.3MB JS as Cloudflare, to keep results as consistent as possible (I have direct control over this Akamai deployment)
+    Endpoint("QUICCloud", ["https://www.quic.cloud/wp-content/litespeed/js/4719a4072c1a2469d85886b6a8e768ad.js?ver=b9fc0"]), # 366 KB, largest I could find
+    Endpoint("Fastly", ["https://www.fastly.com/app-d3379d2cd2b112b78397.js"]), # 526 KB
+
+    Endpoint("AmazonCloudfront", ["https://a.b.cdn.console.awsstatic.com/a/v1/C2LGMTKF7HUIMXMWTJOQPYZ4QQM6U7NBNAZLZEQRWULUVZAZFLVQ/module.js"]), # 1.1 MB
+    Endpoint("GoogleCloudCDN", ["https://cdn.hackersandslackers.com/2017/11/_retina/pandasmerge@2x.jpg"]), # 544 KB
+    
+    Endpoint("Caddy", ["https://nodefalcon.com/img/art-collection-management.jpg", "https://moebuta.org/posts/using-templates-with-caddy-and-hugo/go_integration_with_go_templates.animated_hu0048abfae485ab9ce34f494d8251d3d0_401071_720x0_resize_box_1.gif"]), # 2.1MB gif
+
+    Endpoint("jsdelivr", ["https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.css"]),
+    Endpoint("gstatic", ["https://www.gstatic.com/devrel-devsite/prod/v89c3b644dadab0c1b29fcdfaa83db3f3db74c1887a83ba5a78318ee59aec3871/cloud/js/devsite_app_custom_elements_module.js"]), # 1.1 MB JS 
+
+    Endpoint("Shopify", ["https://cdn.shopify.com/shopifycloud/brochure-iii/production/_assets/brochureV2-DT5SJUFK.css", "https://cdn.shopify.com/b/shopify-brochure2-assets/288aa2d76b4e7aaff082af1eb4279091.avif"])
+]
+
+# handshake failure for some reason... seems to work with chrome though
+# Endpoint("nginx", ["https://welcome.huddersfield.click/wp-content/themes/twentytwenty/assets/fonts/inter/Inter-upright-var.woff2"]),
 
 # proper_endpoints = [
 #     # Endpoint("https://neqo:4123/{}", "neqo"),
@@ -111,6 +131,9 @@ def run_command(cmd):
 # run_command( basecommand +  " --experiment no-headers-instant " + " --quic-log /srv/aioquic/qlog/Akamai " + "https://www.internetonmars.org/posts/h2-server-push/images/7_bandwidthopportunities.png")
 # run_command( basecommand +  " --experiment no-headers-instant " + " --quic-log /srv/aioquic/qlog/QUICCloud " + "https://www.quic.cloud/wp-content/litespeed/js/4719a4072c1a2469d85886b6a8e768ad.js?ver=b9fc0")
 
+# run_command( basecommand +  " --experiment no-headers-instant " + " --quic-log /srv/aioquic/qlog/Caddy " + "https://nodefalcon.com/img/art-collection-management.jpg")
+
+
 # run_command( basecommand +  " --experiment u3-incremental-instant " + " --quic-log /srv/aioquic/qlog/Cloudflare " + "https://www.cloudflare.com/app-fb825b9f46d28bd11d98.js")
 # run_command( basecommand +  " --experiment u3-incremental-instant " + " --quic-log /srv/aioquic/qlog/Akamai " + "https://www.internetonmars.org/posts/h2-server-push/images/7_bandwidthopportunities.png")
 
@@ -120,12 +143,25 @@ def run_command(cmd):
 # run_command( basecommand +  " --experiment late-highprio-delayed " + " --quic-log /srv/aioquic/qlog/Akamai " + "https://www.internetonmars.org/posts/h2-server-push/images/7_bandwidthopportunities.png")
 # run_command( basecommand +  " --experiment late-highprio-delayed " + " --quic-log /srv/aioquic/qlog/QUICCloud " + "https://www.quic.cloud/wp-content/litespeed/js/4719a4072c1a2469d85886b6a8e768ad.js?ver=b9fc0")
 
-run_command( basecommand +  " --experiment late-highprio-instant " + " --quic-log /srv/aioquic/qlog/Cloudflare " + "https://www.cloudflare.com/app-fb825b9f46d28bd11d98.js") 
-run_command( basecommand +  " --experiment late-highprio-instant " + " --quic-log /srv/aioquic/qlog/Akamai " + "https://www.internetonmars.org/posts/h2-server-push/images/7_bandwidthopportunities.png")
-run_command( basecommand +  " --experiment late-highprio-instant " + " --quic-log /srv/aioquic/qlog/QUICCloud " + "https://www.quic.cloud/wp-content/litespeed/js/4719a4072c1a2469d85886b6a8e768ad.js?ver=b9fc0")
+# run_command( basecommand +  " --experiment late-highprio-instant " + " --quic-log /srv/aioquic/qlog/Cloudflare " + "https://www.cloudflare.com/app-fb825b9f46d28bd11d98.js") 
+# run_command( basecommand +  " --experiment late-highprio-instant " + " --quic-log /srv/aioquic/qlog/Akamai " + "https://www.internetonmars.org/posts/h2-server-push/images/7_bandwidthopportunities.png")
+# run_command( basecommand +  " --experiment late-highprio-instant " + " --quic-log /srv/aioquic/qlog/QUICCloud " + "https://www.quic.cloud/wp-content/litespeed/js/4719a4072c1a2469d85886b6a8e768ad.js?ver=b9fc0")
 
+# run_command( basecommand +  " --experiment late-highprio-delayed " + " --quic-log /srv/aioquic/qlog/Caddy " + "https://moebuta.org/posts/using-templates-with-caddy-and-hugo/go_integration_with_go_templates.animated_hu0048abfae485ab9ce34f494d8251d3d0_401071_720x0_resize_box_1.gif")
 
 # run_command( basecommand + " --quic-log /srv/aioquic/qlog/test_qlog_output2_akam_test4img.qlog " + "https://www.internetonmars.org/posts/h2-server-push/images/7_bandwidthopportunities.png https://www.internetonmars.org/posts/h2-server-push/images/7_bandwidthopportunities.png https://www.internetonmars.org/posts/h2-server-push/images/7_bandwidthopportunities.png https://www.internetonmars.org/posts/h2-server-push/images/7_bandwidthopportunities.png")
+
+
+# run_command( basecommand +  " --experiment no-headers-instant " + " --quic-log /srv/aioquic/qlog/fastly " + "https://www.fastly.com/app-d3379d2cd2b112b78397.js")
+# run_command( basecommand +  " --experiment late-highprio-delayed " + " --quic-log /srv/aioquic/qlog/fastly " + "https://www.fastly.com/app-d3379d2cd2b112b78397.js")
+
+
+# run_command( basecommand +  " --experiment no-headers-instant " + " --quic-log /srv/aioquic/qlog/Shopify2 " + "https://cdn.shopify.com/shopifycloud/brochure-iii/production/_assets/brochureV2-DT5SJUFK.css")
+# run_command( basecommand +  " --experiment late-highprio-delayed " + " --quic-log /srv/aioquic/qlog/Shopify2 " + "https://cdn.shopify.com/shopifycloud/brochure-iii/production/_assets/brochureV2-DT5SJUFK.css")
+
+
+run_command( basecommand +  " --experiment no-headers-instant " + " --quic-log /srv/aioquic/qlog/CF2 " + "https://lucaspardue.com/wp-content/uploads/2018/12/Anti-Matter-676x956.jpg")
+run_command( basecommand +  " --experiment late-highprio-delayed " + " --quic-log /srv/aioquic/qlog/CF2 " + "https://lucaspardue.com/wp-content/uploads/2018/12/Anti-Matter-676x956.jpg")
 
 
 
