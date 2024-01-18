@@ -42,6 +42,21 @@ endpoints = [
     Endpoint("Shopify", ["https://cdn.shopify.com/shopifycloud/brochure-iii/production/_assets/brochureV2-DT5SJUFK.css", "https://cdn.shopify.com/b/shopify-brochure2-assets/288aa2d76b4e7aaff082af1eb4279091.avif"])
 ]
 
+experiments = [
+    # "no-headers-instant",
+    # "no-headers-delayed",
+    # "u3-incremental-instant",
+    # "u3-incremental-delayed",
+
+    # "late-highprio-instant",
+    # "late-highprio-delayed",
+    "late-highprio-incremental-instant",
+    # "late-highprio-incremental-delayed",
+
+    "mixed-bucket-instant",
+    # "mixed-bucket-delayed"
+]
+
 # handshake failure for some reason... seems to work with chrome though
 # Endpoint("nginx", ["https://welcome.huddersfield.click/wp-content/themes/twentytwenty/assets/fonts/inter/Inter-upright-var.woff2"]),
 
@@ -112,6 +127,17 @@ def run_command(cmd):
         # print ("Potential ERROR in process: ", process.returncode, " != 0?")
         print ( process.stderr )
 
+def run_experiments():
+    # want to build a string as such: 
+    # basecommand +  " --experiment no-headers-instant " + " --quic-log /srv/aioquic/qlog/CF4 " + "https://www.cloudflare.com/app-fb825b9f46d28bd11d98.js"
+    for experiment in experiments:
+        for endpoint in endpoints:
+            cmd = basecommand + " --experiment " + experiment + " --quic-log /srv/aioquic/qlog/" + endpoint.name + " " + endpoint.urls[0]
+            print( "Running ", cmd )
+            run_command( cmd )
+
+run_experiments()
+
 # run_command( basecommand + " --quic-log /srv/aioquic/qlog/test_qlog_output2_fastly.qlog " + "https://www.fastly.com" )
 #run_command( basecommand + " --quic-log /srv/aioquic/qlog/test_qlog_output2_bing.qlog " + "https://www.bing.com" )
 # run_command( basecommand + " --quic-log /srv/aioquic/qlog/test_qlog_output2_eurodrive.qlog " + "https://www.sew-eurodrive.de/home.html" )
@@ -160,8 +186,14 @@ def run_command(cmd):
 # run_command( basecommand +  " --experiment late-highprio-delayed " + " --quic-log /srv/aioquic/qlog/Shopify2 " + "https://cdn.shopify.com/shopifycloud/brochure-iii/production/_assets/brochureV2-DT5SJUFK.css")
 
 
-run_command( basecommand +  " --experiment no-headers-instant " + " --quic-log /srv/aioquic/qlog/CF2 " + "https://lucaspardue.com/wp-content/uploads/2018/12/Anti-Matter-676x956.jpg")
-run_command( basecommand +  " --experiment late-highprio-delayed " + " --quic-log /srv/aioquic/qlog/CF2 " + "https://lucaspardue.com/wp-content/uploads/2018/12/Anti-Matter-676x956.jpg")
+# run_command( basecommand +  " --experiment no-headers-instant " + " --quic-log /srv/aioquic/qlog/CF3 " + "https://lucaspardue.com/wp-content/uploads/2018/12/Anti-Matter-676x956.jpg")
+# run_command( basecommand +  " --experiment late-highprio-delayed " + " --quic-log /srv/aioquic/qlog/CF3 " + "https://lucaspardue.com/wp-content/uploads/2018/12/Anti-Matter-676x956.jpg")
+# run_command( basecommand +  " --experiment late-highprio-instant " + " --quic-log /srv/aioquic/qlog/CF3 " + "https://lucaspardue.com/wp-content/uploads/2018/12/Anti-Matter-676x956.jpg")
+
+# run_command( basecommand +  " --experiment no-headers-instant " + " --quic-log /srv/aioquic/qlog/CF4 " + "https://www.cloudflare.com/app-fb825b9f46d28bd11d98.js")
+# run_command( basecommand +  " --experiment late-highprio-delayed " + " --quic-log /srv/aioquic/qlog/CF4 " + "https://www.cloudflare.com/app-fb825b9f46d28bd11d98.js")
+# run_command( basecommand +  " --experiment late-highprio-instant " + " --quic-log /srv/aioquic/qlog/CF4 " + "https://www.cloudflare.com/app-fb825b9f46d28bd11d98.js")
+
 
 
 

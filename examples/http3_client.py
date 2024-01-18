@@ -619,6 +619,43 @@ if __name__ == "__main__":
         headers[4] = {"priority": "u=0"}
         headers[5] = {"priority": "u=0"}
 
+
+    # we give request 5 and 6 a much higher priority than the others, other are incremental
+    elif experiment == "late-highprio-incremental-instant":
+        for i in range(request_count):
+            urls.append(mainURL)
+            headers.append({"priority": "u=6, i"})
+            delays.append(0)
+
+        headers[4] = {"priority": "u=0"}
+        headers[5] = {"priority": "u=0"}
+    elif experiment == "late-highprio-incremental-delayed":
+        for i in range(request_count):
+            urls.append(mainURL)
+            headers.append({"priority": "u=6, i"})
+            delays.append(delay_s * i)
+
+        headers[4] = {"priority": "u=0"}
+        headers[5] = {"priority": "u=0"}
+
+    # we give request 5 and 6 a much higher priority than the others, other are incremental, all same bucket
+    elif experiment == "mixed-bucket-instant":
+        for i in range(request_count):
+            urls.append(mainURL)
+            headers.append({"priority": "u=3, i"})
+            delays.append(0)
+
+        headers[4] = {"priority": "u=3"}
+        headers[5] = {"priority": "u=3"}
+    elif experiment == "mixed-bucket-delayed":
+        for i in range(request_count):
+            urls.append(mainURL)
+            headers.append({"priority": "u=3, i"})
+            delays.append(delay_s * i)
+
+        headers[4] = {"priority": "u=3"}
+        headers[5] = {"priority": "u=3"}
+
     else:
         logger.error("Incorrect experiment set %s, quitting...", experiment)
         exit()
