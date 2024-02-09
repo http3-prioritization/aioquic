@@ -43,18 +43,35 @@ endpoints = [
 ]
 
 experiments = [
-    # "no-headers-instant",
-    # "no-headers-delayed",
-    # "u3-incremental-instant",
-    # "u3-incremental-delayed",
+    "no-priority-instant",
+    "no-priority-staggered",
 
-    # "late-highprio-instant",
-    # "late-highprio-delayed",
-    "late-highprio-incremental-instant",
-    # "late-highprio-incremental-delayed",
+    "u3-incremental-headers-instant",
+    "u3-incremental-preframes-instant",
+    "u3-incremental-postframes-instant",
+    "u3-incremental-headers-staggered",
+    "u3-incremental-preframes-staggered",
+    "u3-incremental-postframes-staggered",
 
-    "mixed-bucket-instant",
-    # "mixed-bucket-delayed"
+    "late-highprio-headers-instant",
+    "late-highprio-preframes-instant",
+    "late-highprio-postframes-instant",
+    "late-highprio-headers-staggered",
+    "late-highprio-preframes-staggered",
+    "late-highprio-postframes-staggered",
+
+    "late-highprio-incremental-headers-instant",
+    "late-highprio-incremental-postframes-instant",
+    "late-highprio-incremental-headers-staggered",
+    "late-highprio-incremental-preframes-staggered",
+    "late-highprio-incremental-postframes-staggered",
+
+    "mixed-bucket-headers-instant",
+    "mixed-bucket-preframes-instant",
+    "mixed-bucket-postframes-instant",
+    "mixed-bucket-headers-staggered",
+    "mixed-bucket-preframes-staggered",
+    "mixed-bucket-postframes-staggered",
 ]
 
 # handshake failure for some reason... seems to work with chrome though
