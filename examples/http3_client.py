@@ -1001,7 +1001,7 @@ if __name__ == "__main__":
         # configuration.quic_logger = QuicFileLogger(args.quic_log)
         # --quic-log should be a partial file path instead of a directory (so e.g., /srv/aioquic/qlog/PREFIX_)
         # the remainder of the filename is generated here based on the experiment name
-        quic_log_path = args.quic_log + "_" + str(request_count) + "_" + experiment + ".qlog"
+        quic_log_path = args.quic_log + "_" + str(request_count) + ".qlog"
 
         configuration.quic_logger = QuicSingleFileLogger(quic_log_path)
 
