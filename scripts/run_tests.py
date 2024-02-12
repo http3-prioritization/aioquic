@@ -16,7 +16,7 @@ if process.returncode != 0:
 
 print("Compilation done!")
 
-basecommand = "python3 /srv/aioquic/examples/http3_client.py --insecure -v"
+basecommand = "python3 ./examples/http3_client.py --insecure -v "
 
 class Endpoint:
     def __init__(self, name, urls):
@@ -85,35 +85,67 @@ endpoints = [allendpoints[0]] # only cloudflare
 
 
 experiments = [
-    # "no-priority-instant",
-    # "no-priority-staggered",
+    "no-priority-instant",
+    "no-priority-staggered",
+    "u3-incremental-headers-instant",
+    "u3-incremental-preframes-instant",
+    "u3-incremental-preframes-100ms-instant",
+    "u3-incremental-preframes-200ms-instant",
+    "u3-incremental-postframes-instant",
+    "u3-incremental-postframes-100ms-instant",
+    "u3-incremental-postframes-200ms-instant",
+    "u3-incremental-headers-staggered",
+    "u3-incremental-preframes-staggered",
+    "u3-incremental-preframes-100ms-staggered",
+    "u3-incremental-preframes-200ms-staggered",
+    "u3-incremental-postframes-staggered",
+    "u3-incremental-postframes-100ms-staggered",
+    "u3-incremental-postframes-200ms-staggered",
 
-    # "u3-incremental-headers-instant",
-    # "u3-incremental-preframes-instant",
-    # "u3-incremental-postframes-instant",
-    # "u3-incremental-headers-staggered",
-    # "u3-incremental-preframes-staggered",
-    # "u3-incremental-postframes-staggered",
-
-    # "late-highprio-headers-instant",
+    "late-highprio-headers-instant",
     "late-highprio-preframes-instant",
-    # "late-highprio-postframes-instant",
-    # "late-highprio-headers-staggered",
-    # "late-highprio-preframes-staggered",
-    # "late-highprio-postframes-staggered",
+    "late-highprio-preframes-100ms-instant",
+    "late-highprio-preframes-200ms-instant",
+    "late-highprio-postframes-instant",
+    "late-highprio-postframes-100ms-instant",
+    "late-highprio-postframes-200ms-instant",
+    "late-highprio-headers-staggered",
+    "late-highprio-preframes-staggered",
+    "late-highprio-preframes-100ms-staggered",
+    "late-highprio-preframes-200ms-staggered",
+    "late-highprio-postframes-staggered",
+    "late-highprio-postframes-100ms-staggered",
+    "late-highprio-postframes-200ms-staggered",
 
-    # "late-highprio-incremental-headers-instant",
-    # "late-highprio-incremental-postframes-instant",
-    # "late-highprio-incremental-headers-staggered",
-    # "late-highprio-incremental-preframes-staggered",
-    # "late-highprio-incremental-postframes-staggered",
+    "late-highprio-incremental-headers-instant",
+    "late-highprio-incremental-preframes-instant",
+    "late-highprio-incremental-preframes-100ms-instant",
+    "late-highprio-incremental-preframes-200ms-instant",
+    "late-highprio-incremental-postframes-instant",
+    "late-highprio-incremental-postframes-100ms-instant",
+    "late-highprio-incremental-postframes-200ms-instant",
+    "late-highprio-incremental-headers-staggered",
+    "late-highprio-incremental-preframes-staggered",
+    "late-highprio-incremental-preframes-100ms-staggered",
+    "late-highprio-incremental-preframes-200ms-staggered",
+    "late-highprio-incremental-postframes-staggered",
+    "late-highprio-incremental-postframes-100ms-staggered",
+    "late-highprio-incremental-postframes-200ms-staggered",
 
-    # "mixed-bucket-headers-instant",
-    # "mixed-bucket-preframes-instant",
-    # "mixed-bucket-postframes-instant",
-    # "mixed-bucket-headers-staggered",
-    # "mixed-bucket-preframes-staggered",
-    # "mixed-bucket-postframes-staggered",
+    "mixed-bucket-headers-instant",
+    "mixed-bucket-preframes-instant",
+    "mixed-bucket-preframes-100ms-instant",
+    "mixed-bucket-preframes-200ms-instant",
+    "mixed-bucket-postframes-instant",
+    "mixed-bucket-postframes-100ms-instant",
+    "mixed-bucket-postframes-200ms-instant",
+    "mixed-bucket-headers-staggered",
+    "mixed-bucket-preframes-staggered",
+    "mixed-bucket-preframes-100ms-staggered",
+    "mixed-bucket-preframes-200ms-staggered",
+    "mixed-bucket-postframes-staggered",
+    "mixed-bucket-postframes-100ms-staggered",
+    "mixed-bucket-postframes-200ms-staggered"
 ]
 
 # handshake failure for some reason... seems to work with chrome though
@@ -135,7 +167,7 @@ def run_experiments():
     for experiment in experiments:
         for endpoint in endpoints:
             for urlindex, url in enumerate(endpoint.urls):
-                cmd = basecommand + " --experiment " + experiment + " --quic-log /srv/aioquic/qlog/" + experiment + "_" + endpoint.name + "_url" + str(urlindex) + " " + url
+                cmd = basecommand + " --experiment " + experiment + " --quic-log ./qlog/" + experiment + "_" + endpoint.name + "_url" + str(urlindex) + " " + url
                 print( "Running ", cmd )
                 run_command( cmd )
 

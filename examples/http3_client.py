@@ -1,13 +1,14 @@
 import argparse
 import asyncio
-from dataclasses import dataclass
 import dataclasses
 import logging
 import os
 import pickle
 import ssl
+import sys
 import time
 from collections import deque
+from dataclasses import dataclass
 from typing import BinaryIO, Callable, Deque, Dict, List, Optional, Union, cast
 from urllib.parse import urlparse
 
@@ -27,7 +28,7 @@ from aioquic.h3.events import (
 )
 from aioquic.quic.configuration import QuicConfiguration
 from aioquic.quic.events import QuicEvent
-from aioquic.quic.logger import QuicSingleFileLogger, QuicFileLogger
+from aioquic.quic.logger import QuicFileLogger, QuicSingleFileLogger
 from aioquic.tls import CipherSuite, SessionTicket
 
 try:
@@ -610,6 +611,10 @@ if __name__ == "__main__":
         "--zero-rtt", action="store_true", help="try to send requests using 0-RTT"
     )
 
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Check to make sure the provided experiment configuration will run (DEBUG purposes only)"
+    )
+
     args = parser.parse_args()
 
     logging.basicConfig(
@@ -706,6 +711,24 @@ if __name__ == "__main__":
             pre_request_prio_frames.append(RequestPriorityConfiguration(3, True))
             post_request_prio_frames.append(None)
 
+    # Priority frames 100ms before the request, instant requests
+    elif experiment == "u3-incremental-preframes-100ms-instant":
+        for i in range(request_count):
+            urls.append(mainURL)
+            delays.append(0)
+            headers.append(None)
+            pre_request_prio_frames.append(RequestPriorityConfiguration(3, True, 0.1))
+            post_request_prio_frames.append(None)
+
+    # Priority frames 200ms before the request, instant requests
+    elif experiment == "u3-incremental-preframes-200ms-instant":
+        for i in range(request_count):
+            urls.append(mainURL)
+            delays.append(0)
+            headers.append(None)
+            pre_request_prio_frames.append(RequestPriorityConfiguration(3, True, 0.2))
+            post_request_prio_frames.append(None)
+
     # Priority frames immediately after the request, instant requests
     elif experiment == "u3-incremental-postframes-instant":
         for i in range(request_count):
@@ -714,6 +737,24 @@ if __name__ == "__main__":
             headers.append(None)
             pre_request_prio_frames.append(None)
             post_request_prio_frames.append(RequestPriorityConfiguration(3, True))
+
+    # Priority frames 100ms after the request, instant requests
+    elif experiment == "u3-incremental-postframes-100ms-instant":
+        for i in range(request_count):
+            urls.append(mainURL)
+            delays.append(0)
+            headers.append(None)
+            pre_request_prio_frames.append(None)
+            post_request_prio_frames.append(RequestPriorityConfiguration(3, True, 0.1))
+
+    # Priority frames 200ms after the request, instant requests
+    elif experiment == "u3-incremental-postframes-200ms-instant":
+        for i in range(request_count):
+            urls.append(mainURL)
+            delays.append(0)
+            headers.append(None)
+            pre_request_prio_frames.append(None)
+            post_request_prio_frames.append(RequestPriorityConfiguration(3, True, 0.2))
 
     # Headers staggered
     elif experiment == "u3-incremental-headers-staggered":
@@ -733,6 +774,24 @@ if __name__ == "__main__":
             pre_request_prio_frames.append(RequestPriorityConfiguration(3, True))
             post_request_prio_frames.append(None)
 
+    # Priority frames 100ms before the request, staggered requests
+    elif experiment == "u3-incremental-preframes-100ms-staggered":
+        for i in range(request_count):
+            urls.append(mainURL)
+            delays.append(delay_s * i)
+            headers.append(None)
+            pre_request_prio_frames.append(RequestPriorityConfiguration(3, True, 0.1))
+            post_request_prio_frames.append(None)
+
+    # Priority frames 200ms before the request, staggered requests
+    elif experiment == "u3-incremental-preframes-200ms-staggered":
+        for i in range(request_count):
+            urls.append(mainURL)
+            delays.append(delay_s * i)
+            headers.append(None)
+            pre_request_prio_frames.append(RequestPriorityConfiguration(3, True, 0.2))
+            post_request_prio_frames.append(None)
+
     # Priority frames immediately after the request, staggered requests
     elif experiment == "u3-incremental-postframes-staggered":
         for i in range(request_count):
@@ -741,6 +800,25 @@ if __name__ == "__main__":
             headers.append(None)
             pre_request_prio_frames.append(None)
             post_request_prio_frames.append(RequestPriorityConfiguration(3, True))
+
+    # Priority frames 100ms after the request, staggered requests
+    elif experiment == "u3-incremental-postframes-100ms-staggered":
+        for i in range(request_count):
+            urls.append(mainURL)
+            delays.append(delay_s * i)
+            headers.append(None)
+            pre_request_prio_frames.append(None)
+            post_request_prio_frames.append(RequestPriorityConfiguration(3, True, 0.1))
+
+
+    # Priority frames 200ms after the request, staggered requests
+    elif experiment == "u3-incremental-postframes-200ms-staggered":
+        for i in range(request_count):
+            urls.append(mainURL)
+            delays.append(delay_s * i)
+            headers.append(None)
+            pre_request_prio_frames.append(None)
+            post_request_prio_frames.append(RequestPriorityConfiguration(3, True, 0.2))
 
     ###
     # We give request 5 and 6 a much higher priority than the others, no incremental
@@ -769,6 +847,30 @@ if __name__ == "__main__":
 
         pre_request_prio_frames[4].urgency = 0
         pre_request_prio_frames[5].urgency = 0
+    
+    # Priority frames 100ms before the request, instant requests
+    elif experiment == "late-highprio-preframes-100ms-instant":
+        for i in range(request_count):
+            urls.append(mainURL)
+            delays.append(0)
+            headers.append(None)
+            pre_request_prio_frames.append(RequestPriorityConfiguration(6, False, 0.1))
+            post_request_prio_frames.append(None)
+
+        pre_request_prio_frames[4].urgency = 0
+        pre_request_prio_frames[5].urgency = 0
+
+    # Priority frames 200ms before the request, instant requests
+    elif experiment == "late-highprio-preframes-200ms-instant":
+        for i in range(request_count):
+            urls.append(mainURL)
+            delays.append(0)
+            headers.append(None)
+            pre_request_prio_frames.append(RequestPriorityConfiguration(6, False, 0.2))
+            post_request_prio_frames.append(None)
+
+        pre_request_prio_frames[4].urgency = 0
+        pre_request_prio_frames[5].urgency = 0
 
     # Priority frames immediately after the request, instant requests
     elif experiment == "late-highprio-postframes-instant":
@@ -778,6 +880,32 @@ if __name__ == "__main__":
             headers.append(None)
             pre_request_prio_frames.append(None)
             post_request_prio_frames.append(RequestPriorityConfiguration(6))
+
+        post_request_prio_frames[4].urgency = 0
+        post_request_prio_frames[5].urgency = 0
+
+
+    # Priority frames 100ms after the request, instant requests
+    elif experiment == "late-highprio-postframes-100ms-instant":
+        for i in range(request_count):
+            urls.append(mainURL)
+            delays.append(0)
+            headers.append(None)
+            pre_request_prio_frames.append(None)
+            post_request_prio_frames.append(RequestPriorityConfiguration(6, False, 0.1))
+
+        post_request_prio_frames[4].urgency = 0
+        post_request_prio_frames[5].urgency = 0
+
+
+    # Priority frames 200ms after the request, instant requests
+    elif experiment == "late-highprio-postframes-200ms-instant":
+        for i in range(request_count):
+            urls.append(mainURL)
+            delays.append(0)
+            headers.append(None)
+            pre_request_prio_frames.append(None)
+            post_request_prio_frames.append(RequestPriorityConfiguration(6, False, 0.2))
 
         post_request_prio_frames[4].urgency = 0
         post_request_prio_frames[5].urgency = 0
@@ -806,6 +934,30 @@ if __name__ == "__main__":
         pre_request_prio_frames[4].urgency = 0
         pre_request_prio_frames[5].urgency = 0
 
+    # Priority frames 100ms before the request, staggered requests
+    elif experiment == "late-highprio-preframes-100ms-staggered":
+        for i in range(request_count):
+            urls.append(mainURL)
+            delays.append(delay_s * i)
+            headers.append(None)
+            pre_request_prio_frames.append(RequestPriorityConfiguration(6, False, 0.1))
+            post_request_prio_frames.append(None)
+
+        pre_request_prio_frames[4].urgency = 0
+        pre_request_prio_frames[5].urgency = 0
+
+    # Priority frames 200ms before the request, staggered requests
+    elif experiment == "late-highprio-preframes-200ms-staggered":
+        for i in range(request_count):
+            urls.append(mainURL)
+            delays.append(delay_s * i)
+            headers.append(None)
+            pre_request_prio_frames.append(RequestPriorityConfiguration(6, False, 0.2))
+            post_request_prio_frames.append(None)
+
+        pre_request_prio_frames[4].urgency = 0
+        pre_request_prio_frames[5].urgency = 0
+
     # Priority frames immediately after the request, staggered requests
     elif experiment == "late-highprio-postframes-staggered":
         for i in range(request_count):
@@ -814,6 +966,30 @@ if __name__ == "__main__":
             headers.append(None)
             pre_request_prio_frames.append(None)
             post_request_prio_frames.append(RequestPriorityConfiguration(6))
+
+        post_request_prio_frames[4].urgency = 0
+        post_request_prio_frames[5].urgency = 0
+
+    # Priority frames 100ms after the request, staggered requests
+    elif experiment == "late-highprio-postframes-100ms-staggered":
+        for i in range(request_count):
+            urls.append(mainURL)
+            delays.append(delay_s * i)
+            headers.append(None)
+            pre_request_prio_frames.append(None)
+            post_request_prio_frames.append(RequestPriorityConfiguration(6, False, 0.1))
+
+        post_request_prio_frames[4].urgency = 0
+        post_request_prio_frames[5].urgency = 0
+
+    # Priority frames 200ms after the request, staggered requests
+    elif experiment == "late-highprio-postframes-200ms-staggered":
+        for i in range(request_count):
+            urls.append(mainURL)
+            delays.append(delay_s * i)
+            headers.append(None)
+            pre_request_prio_frames.append(None)
+            post_request_prio_frames.append(RequestPriorityConfiguration(6, False, 0.2))
 
         post_request_prio_frames[4].urgency = 0
         post_request_prio_frames[5].urgency = 0
@@ -851,6 +1027,34 @@ if __name__ == "__main__":
         pre_request_prio_frames[5].urgency = 0
         pre_request_prio_frames[5].incremental = False
 
+    # Priority frames immediately before the request, instant requests
+    elif experiment == "late-highprio-incremental-preframes-100ms-instant":
+        for i in range(request_count):
+            urls.append(mainURL)
+            delays.append(0)
+            headers.append(None)
+            pre_request_prio_frames.append(RequestPriorityConfiguration(6, True, 0.1))
+            post_request_prio_frames.append(None)
+
+        pre_request_prio_frames[4].urgency = 0
+        pre_request_prio_frames[4].incremental = False
+        pre_request_prio_frames[5].urgency = 0
+        pre_request_prio_frames[5].incremental = False
+
+    # Priority frames 200ms before the request, instant requests
+    elif experiment == "late-highprio-incremental-preframes-200ms-instant":
+        for i in range(request_count):
+            urls.append(mainURL)
+            delays.append(0)
+            headers.append(None)
+            pre_request_prio_frames.append(RequestPriorityConfiguration(6, True, 0.2))
+            post_request_prio_frames.append(None)
+
+        pre_request_prio_frames[4].urgency = 0
+        pre_request_prio_frames[4].incremental = False
+        pre_request_prio_frames[5].urgency = 0
+        pre_request_prio_frames[5].incremental = False
+
     # Priority frames immediately after the request, instant requests
     elif experiment == "late-highprio-incremental-postframes-instant":
         for i in range(request_count):
@@ -860,10 +1064,38 @@ if __name__ == "__main__":
             pre_request_prio_frames.append(None)
             post_request_prio_frames.append(RequestPriorityConfiguration(6, True))
 
-        headers[4].urgency = 0
-        headers[4].incremental = False
-        headers[5].urgency = 0
-        headers[5].incremental = False
+        post_request_prio_frames[4].urgency = 0
+        post_request_prio_frames[4].incremental = False
+        post_request_prio_frames[5].urgency = 0
+        post_request_prio_frames[5].incremental = False
+
+    # Priority frames 100ms after the request, instant requests
+    elif experiment == "late-highprio-incremental-postframes-100ms-instant":
+        for i in range(request_count):
+            urls.append(mainURL)
+            delays.append(0)
+            headers.append(None)
+            pre_request_prio_frames.append(None)
+            post_request_prio_frames.append(RequestPriorityConfiguration(6, True, 0.1))
+
+        post_request_prio_frames[4].urgency = 0
+        post_request_prio_frames[4].incremental = False
+        post_request_prio_frames[5].urgency = 0
+        post_request_prio_frames[5].incremental = False
+
+    # Priority frames 200ms after the request, instant requests
+    elif experiment == "late-highprio-incremental-postframes-200ms-instant":
+        for i in range(request_count):
+            urls.append(mainURL)
+            delays.append(0)
+            headers.append(None)
+            pre_request_prio_frames.append(None)
+            post_request_prio_frames.append(RequestPriorityConfiguration(6, True, 0.2))
+
+        post_request_prio_frames[4].urgency = 0
+        post_request_prio_frames[4].incremental = False
+        post_request_prio_frames[5].urgency = 0
+        post_request_prio_frames[5].incremental = False
 
     # Headers, staggered requests
     elif experiment == "late-highprio-incremental-headers-staggered":
@@ -893,6 +1125,34 @@ if __name__ == "__main__":
         pre_request_prio_frames[5].urgency = 0
         pre_request_prio_frames[5].incremental = False
 
+    # Priority frames 100ms before the request, staggered requests
+    elif experiment == "late-highprio-incremental-preframes-100ms-staggered":
+        for i in range(request_count):
+            urls.append(mainURL)
+            delays.append(delay_s * i)
+            headers.append(None)
+            pre_request_prio_frames.append(RequestPriorityConfiguration(6, True, 0.1))
+            post_request_prio_frames.append(None)
+
+        pre_request_prio_frames[4].urgency = 0
+        pre_request_prio_frames[4].incremental = False
+        pre_request_prio_frames[5].urgency = 0
+        pre_request_prio_frames[5].incremental = False
+
+    # Priority frames 200ms before the request, staggered requests
+    elif experiment == "late-highprio-incremental-preframes-200ms-staggered":
+        for i in range(request_count):
+            urls.append(mainURL)
+            delays.append(delay_s * i)
+            headers.append(None)
+            pre_request_prio_frames.append(RequestPriorityConfiguration(6, True, 0.2))
+            post_request_prio_frames.append(None)
+
+        pre_request_prio_frames[4].urgency = 0
+        pre_request_prio_frames[4].incremental = False
+        pre_request_prio_frames[5].urgency = 0
+        pre_request_prio_frames[5].incremental = False
+
     # Priority frames immediately after the request, staggered requests
     elif experiment == "late-highprio-incremental-postframes-staggered":
         for i in range(request_count):
@@ -901,6 +1161,34 @@ if __name__ == "__main__":
             headers.append(None)
             pre_request_prio_frames.append(None)
             post_request_prio_frames.append(RequestPriorityConfiguration(6, True))
+
+        post_request_prio_frames[4].urgency = 0
+        post_request_prio_frames[4].incremental = False
+        post_request_prio_frames[5].urgency = 0
+        post_request_prio_frames[5].incremental = False
+
+    # Priority frames 100ms after the request, staggered requests
+    elif experiment == "late-highprio-incremental-postframes-100ms-staggered":
+        for i in range(request_count):
+            urls.append(mainURL)
+            delays.append(delay_s * i)
+            headers.append(None)
+            pre_request_prio_frames.append(None)
+            post_request_prio_frames.append(RequestPriorityConfiguration(6, True, 0.1))
+
+        post_request_prio_frames[4].urgency = 0
+        post_request_prio_frames[4].incremental = False
+        post_request_prio_frames[5].urgency = 0
+        post_request_prio_frames[5].incremental = False
+
+    # Priority frames 200ms after the request, staggered requests
+    elif experiment == "late-highprio-incremental-postframes-200ms-staggered":
+        for i in range(request_count):
+            urls.append(mainURL)
+            delays.append(delay_s * i)
+            headers.append(None)
+            pre_request_prio_frames.append(None)
+            post_request_prio_frames.append(RequestPriorityConfiguration(6, True, 0.2))
 
         post_request_prio_frames[4].urgency = 0
         post_request_prio_frames[4].incremental = False
@@ -936,6 +1224,30 @@ if __name__ == "__main__":
         pre_request_prio_frames[4].incremental = False
         pre_request_prio_frames[5].incremental = False
 
+    # Priority frames 100ms before the request, staggered requests
+    elif experiment == "mixed-bucket-preframes-100ms-instant":
+        for i in range(request_count):
+            urls.append(mainURL)
+            delays.append(0)
+            headers.append(None)
+            pre_request_prio_frames.append(RequestPriorityConfiguration(3, True, 0.1))
+            post_request_prio_frames.append(None)
+
+        pre_request_prio_frames[4].incremental = False
+        pre_request_prio_frames[5].incremental = False
+
+    # Priority frames 200ms before the request, staggered requests
+    elif experiment == "mixed-bucket-preframes-200ms-instant":
+        for i in range(request_count):
+            urls.append(mainURL)
+            delays.append(0)
+            headers.append(None)
+            pre_request_prio_frames.append(RequestPriorityConfiguration(3, True, 0.2))
+            post_request_prio_frames.append(None)
+
+        pre_request_prio_frames[4].incremental = False
+        pre_request_prio_frames[5].incremental = False
+
     # Priority frames immediately after the request, staggered requests
     elif experiment == "mixed-bucket-postframes-instant":
         for i in range(request_count):
@@ -944,6 +1256,30 @@ if __name__ == "__main__":
             headers.append(None)
             pre_request_prio_frames.append(None)
             post_request_prio_frames.append(RequestPriorityConfiguration(3, True))
+
+        post_request_prio_frames[4].incremental = False
+        post_request_prio_frames[5].incremental = False
+
+    # Priority frames 100ms after the request, staggered requests
+    elif experiment == "mixed-bucket-postframes-100ms-instant":
+        for i in range(request_count):
+            urls.append(mainURL)
+            delays.append(0)
+            headers.append(None)
+            pre_request_prio_frames.append(None)
+            post_request_prio_frames.append(RequestPriorityConfiguration(3, True, 0.1))
+
+        post_request_prio_frames[4].incremental = False
+        post_request_prio_frames[5].incremental = False
+
+    # Priority frames 200ms after the request, staggered requests
+    elif experiment == "mixed-bucket-postframes-200ms-instant":
+        for i in range(request_count):
+            urls.append(mainURL)
+            delays.append(0)
+            headers.append(None)
+            pre_request_prio_frames.append(None)
+            post_request_prio_frames.append(RequestPriorityConfiguration(3, True, 0.2))
 
         post_request_prio_frames[4].incremental = False
         post_request_prio_frames[5].incremental = False
@@ -972,6 +1308,30 @@ if __name__ == "__main__":
         pre_request_prio_frames[4].incremental = False
         pre_request_prio_frames[5].incremental = False
 
+    # Priority frames 100ms before the request, staggered requests
+    elif experiment == "mixed-bucket-preframes-100ms-staggered":
+        for i in range(request_count):
+            urls.append(mainURL)
+            delays.append(delay_s * i)
+            headers.append(None)
+            pre_request_prio_frames.append(RequestPriorityConfiguration(3, True, 0.1))
+            post_request_prio_frames.append(None)
+
+        pre_request_prio_frames[4].incremental = False
+        pre_request_prio_frames[5].incremental = False
+
+    # Priority frames 200ms before the request, staggered requests
+    elif experiment == "mixed-bucket-preframes-200ms-staggered":
+        for i in range(request_count):
+            urls.append(mainURL)
+            delays.append(delay_s * i)
+            headers.append(None)
+            pre_request_prio_frames.append(RequestPriorityConfiguration(3, True, 0.2))
+            post_request_prio_frames.append(None)
+
+        pre_request_prio_frames[4].incremental = False
+        pre_request_prio_frames[5].incremental = False
+
     # Priority frames immediately after the request, staggered requests
     elif experiment == "mixed-bucket-postframes-staggered":
         for i in range(request_count):
@@ -980,6 +1340,30 @@ if __name__ == "__main__":
             headers.append(None)
             pre_request_prio_frames.append(None)
             post_request_prio_frames.append(RequestPriorityConfiguration(3, True))
+
+        post_request_prio_frames[4].incremental = False
+        post_request_prio_frames[5].incremental = False
+
+    # Priority frames 100ms after the request, staggered requests
+    elif experiment == "mixed-bucket-postframes-100ms-staggered":
+        for i in range(request_count):
+            urls.append(mainURL)
+            delays.append(delay_s * i)
+            headers.append(None)
+            pre_request_prio_frames.append(None)
+            post_request_prio_frames.append(RequestPriorityConfiguration(3, True, 0.1))
+
+        post_request_prio_frames[4].incremental = False
+        post_request_prio_frames[5].incremental = False
+
+    # Priority frames 200ms after the request, staggered requests
+    elif experiment == "mixed-bucket-postframes-200ms-staggered":
+        for i in range(request_count):
+            urls.append(mainURL)
+            delays.append(delay_s * i)
+            headers.append(None)
+            pre_request_prio_frames.append(None)
+            post_request_prio_frames.append(RequestPriorityConfiguration(3, True, 0.2))
 
         post_request_prio_frames[4].incremental = False
         post_request_prio_frames[5].incremental = False
@@ -1008,6 +1392,9 @@ if __name__ == "__main__":
     # headers = []
     # for url in args.url:
     #     headers.append( {"priority": "u=0, i"} )
+
+    if args.dry_run:
+        sys.exit(0)
 
     if uvloop is not None:
         uvloop.install()
