@@ -16,7 +16,7 @@ if process.returncode != 0:
 
 print("Compilation done!")
 
-basecommand = "python3 /srv/aioquic/examples/http3_client.py --insecure -v"
+basecommand = "python3 ./examples/http3_client.py --insecure -v "
 
 class Endpoint:
     def __init__(self, name, urls):
@@ -26,10 +26,10 @@ class Endpoint:
 # runname = ""
 
 endpoints = [
-    Endpoint("Cloudflare", ["https://www.cloudflare.com/app-fb825b9f46d28bd11d98.js"]), # 1.3MB JS
+    # Endpoint("Cloudflare", ["https://www.cloudflare.com/app-fb825b9f46d28bd11d98.js"]), # 1.3MB JS
     Endpoint("Akamai", ["https://www.internetonmars.org/h3prios/server-tests/test.js"]), # same 1.3MB JS as Cloudflare, to keep results as consistent as possible (I have direct control over this Akamai deployment)
     Endpoint("QUICCloud", ["https://www.quic.cloud/wp-content/litespeed/js/4719a4072c1a2469d85886b6a8e768ad.js?ver=b9fc0"]), # 366 KB, largest I could find
-    Endpoint("Fastly", ["https://www.fastly.com/app-d3379d2cd2b112b78397.js"]), # 526 KB
+    # Endpoint("Fastly", ["https://www.fastly.com/app-d3379d2cd2b112b78397.js"]), # 526 KB
 
     Endpoint("AmazonCloudfront", ["https://a.b.cdn.console.awsstatic.com/a/v1/C2LGMTKF7HUIMXMWTJOQPYZ4QQM6U7NBNAZLZEQRWULUVZAZFLVQ/module.js"]), # 1.1 MB
     Endpoint("GoogleCloudCDN", ["https://cdn.hackersandslackers.com/2017/11/_retina/pandasmerge@2x.jpg"]), # 544 KB
@@ -48,30 +48,63 @@ experiments = [
 
     "u3-incremental-headers-instant",
     "u3-incremental-preframes-instant",
+    "u3-incremental-preframes-100ms-instant",
+    "u3-incremental-preframes-200ms-instant",
     "u3-incremental-postframes-instant",
+    "u3-incremental-postframes-100ms-instant",
+    "u3-incremental-postframes-200ms-instant",
     "u3-incremental-headers-staggered",
     "u3-incremental-preframes-staggered",
+    "u3-incremental-preframes-100ms-staggered",
+    "u3-incremental-preframes-200ms-staggered",
     "u3-incremental-postframes-staggered",
+    "u3-incremental-postframes-100ms-staggered",
+    "u3-incremental-postframes-200ms-staggered",
 
     "late-highprio-headers-instant",
     "late-highprio-preframes-instant",
+    "late-highprio-preframes-100ms-instant",
+    "late-highprio-preframes-200ms-instant",
     "late-highprio-postframes-instant",
+    "late-highprio-postframes-100ms-instant",
+    "late-highprio-postframes-200ms-instant",
     "late-highprio-headers-staggered",
     "late-highprio-preframes-staggered",
+    "late-highprio-preframes-100ms-staggered",
+    "late-highprio-preframes-200ms-staggered",
     "late-highprio-postframes-staggered",
+    "late-highprio-postframes-100ms-staggered",
+    "late-highprio-postframes-200ms-staggered",
 
     "late-highprio-incremental-headers-instant",
+    "late-highprio-incremental-preframes-instant",
+    "late-highprio-incremental-preframes-100ms-instant",
+    "late-highprio-incremental-preframes-200ms-instant",
     "late-highprio-incremental-postframes-instant",
+    "late-highprio-incremental-postframes-100ms-instant",
+    "late-highprio-incremental-postframes-200ms-instant",
     "late-highprio-incremental-headers-staggered",
     "late-highprio-incremental-preframes-staggered",
+    "late-highprio-incremental-preframes-100ms-staggered",
+    "late-highprio-incremental-preframes-200ms-staggered",
     "late-highprio-incremental-postframes-staggered",
+    "late-highprio-incremental-postframes-100ms-staggered",
+    "late-highprio-incremental-postframes-200ms-staggered",
 
     "mixed-bucket-headers-instant",
     "mixed-bucket-preframes-instant",
+    "mixed-bucket-preframes-100ms-instant",
+    "mixed-bucket-preframes-200ms-instant",
     "mixed-bucket-postframes-instant",
+    "mixed-bucket-postframes-100ms-instant",
+    "mixed-bucket-postframes-200ms-instant",
     "mixed-bucket-headers-staggered",
     "mixed-bucket-preframes-staggered",
+    "mixed-bucket-preframes-100ms-staggered",
+    "mixed-bucket-preframes-200ms-staggered",
     "mixed-bucket-postframes-staggered",
+    "mixed-bucket-postframes-100ms-staggered",
+    "mixed-bucket-postframes-200ms-staggered",
 ]
 
 # handshake failure for some reason... seems to work with chrome though
@@ -92,7 +125,7 @@ def run_experiments():
     # basecommand +  " --experiment no-headers-instant " + " --quic-log /srv/aioquic/qlog/CF4 " + "https://www.cloudflare.com/app-fb825b9f46d28bd11d98.js"
     for experiment in experiments:
         for endpoint in endpoints:
-            cmd = basecommand + " --experiment " + experiment + " --quic-log /srv/aioquic/qlog/" + endpoint.name + " " + endpoint.urls[0]
+            cmd = basecommand + " --experiment " + experiment + " --quic-log ./qlog/" + endpoint.name + " " + endpoint.urls[0]
             print( "Running ", cmd )
             run_command( cmd )
 
