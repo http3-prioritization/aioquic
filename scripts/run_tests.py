@@ -151,6 +151,9 @@ experiments = [
 # handshake failure for some reason... seems to work with chrome though
 # Endpoint("nginx", ["https://welcome.huddersfield.click/wp-content/themes/twentytwenty/assets/fonts/inter/Inter-upright-var.woff2"]),
 
+class ExperimentException(Exception):
+    pass
+
 def run_command(cmd):
     process = subprocess.run("{}".format(cmd), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
 
@@ -161,15 +164,27 @@ def run_command(cmd):
         # print ("Potential ERROR in process: ", process.returncode, " != 0?")
         print ( process.stderr )
 
+    if "ConnectionError" in process.stdout or "ConnectionError" in process.stderr:
+        raise ExperimentException(f"'ConnectionError' found in stdout or stderr")
+
 def run_experiments():
     # want to build a string as such: 
     # basecommand +  " --experiment no-headers-instant " + " --quic-log /srv/aioquic/qlog/no-headers-instant_CF4 " + "https://www.cloudflare.com/app-fb825b9f46d28bd11d98.js"
+    potential_failures = []
     for experiment in experiments:
         for endpoint in endpoints:
             for urlindex, url in enumerate(endpoint.urls):
                 cmd = basecommand + " --experiment " + experiment + " --quic-log ./qlog/" + experiment + "_" + endpoint.name + "_url" + str(urlindex) + " " + url
                 print( "Running ", cmd )
-                run_command( cmd )
+                try:
+                    run_command( cmd )
+                except ExperimentException as e:
+                    potential_failures.append(f"Experiment [{experiment}] - Endpoint [{url}] - {str(e)}")
+    
+    if len(potential_failures) > 0:
+        print("Test ended with the following potential failures:")
+        for f in potential_failures:
+            print(f)
 
 
 # TODO: run a basic experiment first to make sure the URLs are cached in the closest CDN edge node 
