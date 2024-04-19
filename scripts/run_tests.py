@@ -1,5 +1,6 @@
 # inspired by https://github.com/rmarx/aioquic/tree/master/scripts
 
+import os
 import subprocess
 
 # need to run setup.py first to make sure all our changes are compiled before running
@@ -7,16 +8,19 @@ import subprocess
 # need to run this from inside the root dir
 # so in /srv/aioquic, do python3 scripts/run_tests.py
 
-print("Compiling...")
-process = subprocess.run("{}".format("python3 /srv/aioquic/setup.py install"), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+# print("Compiling...")
+# process = subprocess.run("{}".format("python3 /srv/aioquic/setup.py install"), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
 
-if process.returncode != 0:
-    print ("ERROR in compilation: ", process.returncode, " != 0?")
-    print ( process.stderr )
+# if process.returncode != 0:
+#     print ("ERROR in compilation: ", process.returncode, " != 0?")
+#     print ( process.stderr )
 
-print("Compilation done!")
+# print("Compilation done!")
 
-basecommand = "python3 ./examples/http3_client.py --insecure -v "
+base_path = os.path.dirname(os.path.realpath(__file__))
+# basecommand = f"python3 {os.path.join(base_path, '../examples/http3_client.py')} --insecure -v "
+# basecommand = f"{os.path.join(base_path, '../.venv/bin/python')} {os.path.join(base_path, '../examples/http3_client.py')} --insecure -v "
+basecommand = "python3 ./examples/http3_client.py --insecure -v"
 
 class Endpoint:
     def __init__(self, name, urls):
@@ -30,10 +34,12 @@ class Endpoint:
 
 allendpoints = [
     Endpoint("Cloudflare", [
-                            "https://www.cloudflare.com/app-18cb3eb3ed5aedd2a5b1.js", # CF homepage, 1.4MB
+                            # "https://www.cloudflare.com/app-18cb3eb3ed5aedd2a5b1.js", # CF homepage, 1.4MB (Unavailable after 21/02/2024)
+                            # "https://www.cloudflare.com/app-6e18c2731ac4d7e8f25d.js", # CF homepage, 1.4MB (1.35MB to be precise, stayed the same)
+                            "https://www.cloudflare.com/app-54d134b22c9808b42dac.js", # CF homepage, 1.4MB (1.35MB to be precise, stayed the same)
                             "https://lucaspardue.com/wp-content/beagle-max-1.jpg", # Lucas Pardue direct, 1.5 MB (-1 to -10 available, all the same)
                             "https://lucaspardue.com/wp-content/art.jpg", # Lucas Pardue direct, 2.9 MB
-                            "https://ptcfc.com/img/284/r20-100KB.png" # 102KB
+                            # "https://ptcfc.com/img/284/r20-100KB.png" # 102KB
                             ]), 
 
     Endpoint("Akamai", [
@@ -44,13 +50,15 @@ allendpoints = [
 
     Endpoint("QUICCloud", ["https://www.quic.cloud/wp-content/litespeed/js/4719a4072c1a2469d85886b6a8e768ad.js?ver=b9fc0"]), # 366 KB, largest I could find
     Endpoint("Fastly", [
-                            "https://www.fastly.com/app-2256891624a3588fe57b.js", # Pricing page, 447 KB
+                            # "https://www.fastly.com/app-2256891624a3588fe57b.js", # Pricing page, 447 KB
+                            "https://www.fastly.com/app-fe0b1187523c9c55a21e.js", # Pricing page, 447 KB
                             "https://fastly.cedexis-test.com/img/20367/r20-100KB.png" # 102KB
                         ]),
 
     Endpoint("AmazonCloudfront", [
                             "https://a.b.cdn.console.awsstatic.com/a/v1/C2LGMTKF7HUIMXMWTJOQPYZ4QQM6U7NBNAZLZEQRWULUVZAZFLVQ/module.js", # 1.1 MB
-                            "https://www.reezocar.com/_next/static/chunks/pages/_app-24e6c5fa4db04512.js", # homepage 3.1MB
+                            # "https://www.reezocar.com/_next/static/chunks/pages/_app-24e6c5fa4db04512.js", # homepage 3.1MB
+                            "https://www.reezocar.com/_next/static/chunks/pages/_app-6415fd50ccc6b3bf.js", # homepage 3.1MB
                             "https://p29.cedexis-test.com/img/r20-100KB.png"
                         ]),
     Endpoint("GoogleCloudCDN", [
@@ -79,8 +87,16 @@ allendpoints = [
                          "https://cdn.shopify.com/b/shopify-brochure2-assets/288aa2d76b4e7aaff082af1eb4279091.avif"])   # 599 KB animated AVIF
 ]
 
+custom_endpoints = [
+    Endpoint("nginx", ["https://h3.internetonmars.org:50035/test.js"]),
+    Endpoint("caddy", ["https://h3.internetonmars.org:50098/test.js"]),
+]
+
+
 # endpoints = allendpoints 
-endpoints = [allendpoints[0]] # only cloudflare
+# endpoints = custom_endpoints 
+endpoints = allendpoints + custom_endpoints 
+# endpoints = [allendpoints[1]] 
 
 
 
@@ -145,7 +161,27 @@ experiments = [
     "mixed-bucket-preframes-200ms-staggered",
     "mixed-bucket-postframes-staggered",
     "mixed-bucket-postframes-100ms-staggered",
-    "mixed-bucket-postframes-200ms-staggered"
+    "mixed-bucket-postframes-200ms-staggered",
+
+    # "mixed-signals-preframes-instant",
+    # "mixed-signals-preframes-100ms-instant",
+    # "mixed-signals-preframes-200ms-instant",
+    # "mixed-signals-postframes-instant",
+    # "mixed-signals-postframes-100ms-instant",
+    # "mixed-signals-postframes-200ms-instant",
+    # "mixed-signals-preframes-staggered",
+    # "mixed-signals-preframes-100ms-staggered",
+    # "mixed-signals-preframes-200ms-staggered",
+    # "mixed-signals-postframes-staggered",
+    # "mixed-signals-postframes-100ms-staggered",
+    # "mixed-signals-postframes-200ms-staggered",
+
+    "reprioritization-50ms-headers-instant",
+    "reprioritization-50ms-preframes-20ms-instant",
+    "reprioritization-50ms-postframes-20ms-instant",
+    "reprioritization-50ms-headers-staggered",
+    "reprioritization-50ms-preframes-20ms-staggered",
+    "reprioritization-50ms-postframes-20ms-staggered",
 ]
 
 # handshake failure for some reason... seems to work with chrome though
