@@ -3,6 +3,7 @@
 # first time run:
 sudo docker stop aioquic-earlydatatest && sudo docker rm aioquic-earlydatatest
 sudo mkdir -p $(pwd)/results
+sudo chmod 777 $(pwd)/results
 sudo docker run -it --privileged --cap-add=NET_ADMIN -p 4433:4433/udp --name aioquic-earlydata --volume=$(pwd)/results:/srv/aioquic/qlog aioquic-earlydatatest
 
 

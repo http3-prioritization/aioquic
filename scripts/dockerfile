@@ -20,7 +20,7 @@ RUN cd /srv/aioquic \
  && python3 -m venv .venv \
  && source .venv/bin/activate \
  && pip install -e . \
- && pip install asgiref dnslib "flask<2.2" httpbin starlette "werkzeug<2.1" wsproto aiofiles \
+ && pip install asgiref dnslib "flask<2.2" httpbin starlette "werkzeug<2.1" wsproto aiofiles setuptools \
  && mkdir /srv/aioquic/qlog/
 
 ENTRYPOINT ["bash"]
