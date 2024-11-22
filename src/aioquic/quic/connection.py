@@ -2205,9 +2205,14 @@ class QuicConnection:
         stream = self._get_or_create_stream(frame_type, stream_id)
         stream.sender.reset(error_code=QuicErrorCode.NO_ERROR)
 
-        self._events.append(
-            events.StopSendingReceived(error_code=error_code, stream_id=stream_id)
-        )
+        # ROBIN: added to fail quickly if the server sends back a STOP_SENDING but not a connection_close
+        if self._close_event is None:
+            self._close_event = events.StopSendingReceived(error_code=error_code, stream_id=stream_id)
+            self._close_begin(is_initiator=True, now=context.time)
+        else:
+            self._events.append(
+                events.StopSendingReceived(error_code=error_code, stream_id=stream_id)
+            )
 
     def _handle_stream_frame(
         self, context: QuicReceiveContext, frame_type: int, buf: Buffer

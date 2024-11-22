@@ -5,9 +5,12 @@ import os
 import pickle
 import ssl
 import time
+import json
 from collections import deque
 from typing import BinaryIO, Callable, Deque, Dict, List, Optional, Union, cast
 from urllib.parse import urlparse
+
+from pprint import pprint
 
 import aioquic
 import wsproto
@@ -225,7 +228,7 @@ class HttpClient(QuicConnectionProtocol):
                 (b":scheme", request.url.scheme.encode()),
                 (b":authority", request.url.authority.encode()),
                 (b":path", request.url.full_path.encode()),
-                (b"user-agent", USER_AGENT.encode()),
+                # (b"user-agent", USER_AGENT.encode())
             ]
             + [(k.encode(), v.encode()) for (k, v) in request.headers.items()],
             end_stream=not request.content,
@@ -264,7 +267,28 @@ async def perform_http_request(
         )
         method = "POST"
     else:
-        http_events = await client.get(url)
+        if (".html" in url) and ("earlyhints" in url):
+            http_events = await client.get(url, headers={
+                "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+                "accept-language": "en-US,en;q=0.9,nl-BE;q=0.8,nl;q=0.7,la;q=0.6",
+                "cache-control": "no-cache",
+                "pragma": "no-cache",
+                "priority": "u=0, i",
+                "sec-ch-ua": "\"Google Chrome\";v=\"129\", \"Not=A?Brand\";v=\"8\", \"Chromium\";v=\"129\"",
+                "sec-ch-ua-mobile": "?0",
+                "sec-ch-ua-platform": "\"macOS\"",
+                "sec-fetch-dest": "document",
+                "sec-fetch-mode": "navigate",
+                "sec-fetch-site": "none",
+                "sec-fetch-user": "?1",
+                "upgrade-insecure-requests": "1",
+                "pragma": "akamai-x-get-request-id, akamai-x-cache-on, akamai-x-get-cache-tags, akamai-x-get-cache-key, akamai-x-get-true-cache-key"
+            })
+        else:
+            http_events = await client.get(url, headers={
+                "pragma": "akamai-x-get-request-id, akamai-x-cache-on, akamai-x-get-cache-tags, akamai-x-get-cache-key, akamai-x-get-true-cache-key"
+            })
+
         method = "GET"
     elapsed = time.time() - start
 
@@ -339,7 +363,17 @@ def save_session_ticket(ticket: SessionTicket) -> None:
     Callback which is invoked by the TLS engine when a new session ticket
     is received.
     """
+    # TODO: find a way to get the qlog logger here so we can add it as a custom event as well
+    logger.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>")
     logger.info("New session ticket received")
+    logger.info( "not_valid_after " + str(ticket.not_valid_after) )
+    logger.info( "not_valid_before" + str(ticket.not_valid_before) )
+    logger.info( "age_add" + str(ticket.age_add) )
+    logger.info( "server_name" + ticket.server_name )
+    logger.info( "resumption_secret" + str(ticket.resumption_secret) )
+    logger.info( "cipher_suite" + str(ticket.cipher_suite) )
+    logger.info( "max_early_data_size" + str(ticket.max_early_data_size) )
+    logger.info("<<<<<<<<<<<<<<<<<<<<<<<<<<<")
     if args.session_ticket:
         with open(args.session_ticket, "wb") as fp:
             pickle.dump(ticket, fp)
@@ -410,6 +444,25 @@ async def main(
 
             await ws.close()
         else:
+            if (configuration.session_ticket is not None) and (configuration.quic_logger is not None):
+                logger.info(
+                    "session ticket is being used %s", configuration.session_ticket.server_name
+                )
+                client._http._quic_logger.log_event( # this gets the correct trace
+                    category="transport",
+                    event="session_ticket_used",
+                    data={
+                        "not_valid_after": str(configuration.session_ticket.not_valid_after), 
+                        "not_valid_before": str(configuration.session_ticket.not_valid_before), 
+                        "age_add": str(configuration.session_ticket.age_add), 
+                        "server_name": configuration.session_ticket.server_name,
+                        "resumption_secret": str(configuration.session_ticket.resumption_secret),
+                        "cipher_suite": str(configuration.session_ticket.cipher_suite),
+                        "max_early_data_size": str(configuration.session_ticket.max_early_data_size),
+                    }
+                )
+        
+
             # perform request
             coros = [
                 perform_http_request(
@@ -421,7 +474,15 @@ async def main(
                 )
                 for url in urls
             ]
-            await asyncio.gather(*coros)
+            try:
+                async with asyncio.timeout(10): # ROBIN; added to make sure stuff doesn't hang forever
+                    results = await asyncio.gather(*coros)
+            except Exception as e:
+                print("TIMEOUT EXCEEDED. FORCE CLOSING")
+                loop = asyncio.get_running_loop()
+                loop.stop()
+                loop.close()
+                return
 
             # process http pushes
             process_http_pushes(client=client, include=include, output_dir=output_dir)
@@ -591,6 +652,7 @@ if __name__ == "__main__":
 
     if uvloop is not None:
         uvloop.install()
+
     asyncio.run(
         main(
             configuration=configuration,

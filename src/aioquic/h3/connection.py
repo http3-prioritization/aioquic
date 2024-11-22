@@ -336,7 +336,8 @@ def validate_response_headers(
 def validate_trailers(headers: Headers) -> None:
     validate_headers(
         headers,
-        allowed_pseudo_headers=frozenset(),
+        # ROBIN: makes testing 103 Early Hints possible
+        allowed_pseudo_headers=frozenset((b":status",)),
         required_pseudo_headers=frozenset(),
     )
 
@@ -719,7 +720,8 @@ class H3Connection:
 
         if frame_type == FrameType.DATA:
             # check DATA frame is allowed
-            if stream.headers_recv_state != HeadersState.AFTER_HEADERS:
+            # ROBIN: allow DATA frame after trailers to allow 103 EH in a HACKY way
+            if stream.headers_recv_state != HeadersState.AFTER_HEADERS and stream.headers_recv_state != HeadersState.AFTER_TRAILERS:
                 raise FrameUnexpected("DATA frame is not allowed in this state")
 
             if frame_data is not None:

@@ -59,6 +59,8 @@ SERVER_CONTEXT_STRING = b"TLS 1.3, server CertificateVerify"
 
 T = TypeVar("T")
 
+DEBUGlogger = logging.getLogger("quic")
+
 
 # facilitate mocking for the test suite
 def utcnow() -> datetime.datetime:
@@ -707,8 +709,14 @@ def push_client_hello(buf: Buffer, hello: ClientHello) -> None:
                     buf.push_bytes(extension_value)
 
             if hello.early_data:
+                if DEBUGlogger:
+                    DEBUGlogger.debug("Client hello is sending early_data True")
+
                 with push_extension(buf, ExtensionType.EARLY_DATA):
                     pass
+            else:
+                if DEBUGlogger:
+                    DEBUGlogger.debug("Client hello is NOT SENDING early_data!!!!")
 
             # pre_shared_key MUST be last
             if hello.pre_shared_key is not None:
@@ -819,6 +827,8 @@ def pull_new_session_ticket(buf: Buffer) -> NewSessionTicket:
             extension_length = buf.pull_uint16()
             if extension_type == ExtensionType.EARLY_DATA:
                 new_session_ticket.max_early_data_size = buf.pull_uint32()
+                if DEBUGlogger:
+                    DEBUGlogger.debug("Session ticket had max_early_data_size %s", str(new_session_ticket.max_early_data_size))
             else:
                 new_session_ticket.other_extensions.append(
                     (extension_type, buf.pull_bytes(extension_length))
@@ -869,6 +879,11 @@ def pull_encrypted_extensions(buf: Buffer) -> EncryptedExtensions:
                     buf, 2, partial(pull_alpn_protocol, buf)
                 )[0]
             elif extension_type == ExtensionType.EARLY_DATA:
+                global DEBUGlogger
+                if DEBUGlogger:
+                    DEBUGlogger.debug("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                    DEBUGlogger.debug("Encrypted Extensions had EARLY_DATA set")
+                    DEBUGlogger.debug("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
                 extensions.early_data = True
             else:
                 extensions.other_extensions.append(
@@ -1337,6 +1352,8 @@ class Context:
         self._dec_key: Optional[bytes] = None
         self.__logger = logger
 
+        DEBUGlogger = logger
+
         self._ec_private_keys: List[ec.EllipticCurvePrivateKey] = []
         self._x25519_private_key: Optional[x25519.X25519PrivateKey] = None
         self._x448_private_key: Optional[x448.X448PrivateKey] = None
@@ -1583,6 +1600,8 @@ class Context:
 
             # update hello
             if self.session_ticket.max_early_data_size is not None:
+                if DEBUGlogger:
+                    DEBUGlogger.debug("client hello sending has early_data set to True because session ticket allowed it")
                 hello.early_data = True
             hello.pre_shared_key = OfferedPsks(
                 identities=[
@@ -1691,6 +1710,10 @@ class Context:
         self.alpn_negotiated = encrypted_extensions.alpn_protocol
         self.early_data_accepted = encrypted_extensions.early_data
         self.received_extensions = encrypted_extensions.other_extensions
+
+
+        if DEBUGlogger:
+            DEBUGlogger.debug("handling encrypted extensions: early_data_accepted was %s", str(self.early_data_accepted))
 
         # notify application
         if self.alpn_cb:
